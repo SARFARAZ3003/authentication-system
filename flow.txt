@@ -1,0 +1,41 @@
+npm init -y -> package.json dia humlog isko root m use krre kyuki aasani hoga deploy ke waqt.
+
+npm install express cookie-parser mailtrap bcryptjs dotenv jsonwebtoken mongoose crypto 
+
+npm i nodemon -D -> ye nodemon as a dev dependency install kar dia yk.
+then humlog package.json m , scripts m add kiye "nodemon backend/server.js" , jisse whenever we do npm run dev toh ye script run ho.
+
+also we changed the type in package.json to module, jisse we can use import express from 'express' instead of const express = require('express');
+
+
+.ENV file m change krne ke baad, nodemon se vo apply nhi hota restart hoke. Humko manually server kill karke phir restart krna hoga.
+
+
+
+//IMPORTANT: 
+Configs = setup + exports
+Controllers = use + logic .         Bas.Is ek line pe poora backend tikta hai.
+
+//Config files:
+cheezon ko initialize karti hain
+phir export karti hain
+
+//Controller ka kaam kya hai? : 
+request receive karte hain
+logic lagate hain
+config se aayi cheezon ko use karte hain
+
+
+------------Front End--------------
+//Important line (ye yaad rakh)
+
+React frontend banata hai
+Vite React ko chalane me madad karta hai
+Backend = bilkul alag cheez
+
+
+//we will install react-router-dom, so that we can really wrap our react application with <BrowserRouter> ,
+so that we can have different pages and linking in my application.
+
+
+//in Frontend for icons ,we will be using package called lucide-react
