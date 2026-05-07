@@ -33,7 +33,3 @@ app.listen(PORT, () => {
     console.log("Server is running on address: http://localhost:"+PORT);  
 })
 
-//auth db -> EorvOuRcinOS0eDR 
-//username -> sarfarazhussainwork_db_user
-
-//compass string -> mongodb+srv://sarfarazhussainwork_db_user:EorvOuRcinOS0eDR@cluster0.zxljmit.mongodb.net/
