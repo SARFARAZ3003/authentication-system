@@ -15,6 +15,12 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Render (and most hosts) put a proxy in front of the app, so the real client IP
+// arrives in the 'X-Forwarded-For' header. Trust exactly ONE proxy hop so
+// express-rate-limit can identify clients correctly (trusting "all" would let
+// clients spoof their IP, so we keep it to 1).
+app.set('trust proxy', 1);
+
 // __dirname is not available in ES modules, so we rebuild it from the file URL.
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
