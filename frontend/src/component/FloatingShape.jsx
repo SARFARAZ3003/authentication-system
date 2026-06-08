@@ -43,8 +43,8 @@ const FloatingShape = ( {color, size, top, left, delay}) => {
                 delay
             }}
 
-            aria-hidden="true"     
-        />w
+            aria-hidden="true"
+        />
     );
 };
 

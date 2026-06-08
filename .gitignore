@@ -1,2 +1,6 @@
 node_modules/
 .env
+
+# local dev server logs
+*-dev.log
+*-dev.err.log

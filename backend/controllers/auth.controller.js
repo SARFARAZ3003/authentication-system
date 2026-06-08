@@ -2,7 +2,7 @@ import bcryptjs from 'bcryptjs';
 import crypto from 'crypto';
 import { User } from "../models/user.model.js";
 import { generateTokenAndSetCookie } from "../util/generateTokenAndSetCookie.js";
-import { sendVerificationEmail, sendWelcomeEmail , sendForgotPasswordEmail, sendResetSuccessEmail} from "../mailtrap/emails.js";
+import { sendVerificationEmail, sendWelcomeEmail , sendForgotPasswordEmail, sendResetSuccessEmail} from "../email/emails.js";
 
 
 
@@ -14,6 +14,12 @@ export const signup = async (req, res) => {
     if(!email || !password || !name)
     {
         throw new Error("All fields are required.");
+    }
+
+    // Basic strength check so weak passwords never reach the database.
+    if(password.length < 6)
+    {
+        throw new Error("Password must be at least 6 characters long.");
     }
 
     const UserAlreadyExists = await User.findOne({email});      //{} is zaroori. findOne() expect krta h ek filter object. agr {} bina bhejnge toh lagega ki vairable hn.
@@ -110,12 +116,8 @@ export const login = async (req, res) => {
         //first check email is valid or not.
         const user = await User.findOne({email});
         if(!user ){
-            return res.status(401).json({success: false, message: "email doesn't exist or not verified."});        //industry: 401 Unauthorized : Wrong credentials.
-        }
-
-        if(!user.isVerified)
-        {
-            return res.status(403).json({success: false, message: "Email not verified."});      //industry : 403 Forbidden-> Unauthorised.     
+            // Generic message so attackers can't tell which emails are registered (no enumeration).
+            return res.status(401).json({success: false, message: "Invalid credentials."});        //industry: 401 Unauthorized : Wrong credentials.
         }
 
         //now check whether password matches or not.
@@ -123,7 +125,12 @@ export const login = async (req, res) => {
 
         if(!isPasswordValid)
         {
-            return res.status(401).json({success: false, message: "Invalid password."});       //401 -> Unauthorised
+            return res.status(401).json({success: false, message: "Invalid credentials."});       //401 -> Unauthorised
+        }
+
+        if(!user.isVerified)
+        {
+            return res.status(403).json({success: false, message: "Please verify your email before logging in."});      //industry : 403 Forbidden-> Unauthorised.
         }
 
         //Now we will generate the token and set cookie to remember him as logged in.
@@ -160,9 +167,11 @@ export const forgotPassword = async (req, res) => {
     try{
         const user = await User.findOne({email});
 
+        // Always respond the same way whether or not the email exists,
+        // so an attacker can't use this endpoint to discover registered emails.
         if(!user)
         {
-            return res.status(404).json({success: false, message:"User not found."});
+            return res.status(200).json({success: true, message: "If an account exists for this email, a reset link has been sent."});
         }
 
         // Generate reset token.
@@ -180,13 +189,9 @@ export const forgotPassword = async (req, res) => {
 
         res.status(200).json({
             success: true,
-            message: "Password reset email sent successfully",
-            user: {
-                ...user._doc,
-                password: undefined,
-            }
+            message: "If an account exists for this email, a reset link has been sent.",
         });
-        
+
     } catch (error) {
         console.log("Error in forgotPassword ",error);
         res.status(400).json({success:false, message: error.message});
@@ -199,13 +204,19 @@ export const resetPassword = async (req, res) => {
         const {token} = req.params;     //ye humlog bheje hai , url m dynamic karke tha , toh usko nikalne ke liye , req.params karte hai.
         const {password} = req.body;    //ye user type karke bhejega , hence req.body krre humlog.
 
+        if(!password || password.length < 6)
+        {
+            return res.status(400).json({success: false, message: "Password must be at least 6 characters long."});
+        }
+
         const user = await User.findOne({
             resetPasswordToken: token,
             resetPasswordExpiresAt: {$gt: Date.now()}
         });
 
+        // IMPORTANT: return here, otherwise execution continues on a null user and crashes.
         if(!user)
-            res.status(400).json({success: false, message: "Invalid or expired token."});
+            return res.status(400).json({success: false, message: "Invalid or expired token."});
 
         //now we can update the password.
         const hashedPassword = await bcryptjs.hash(password, 10);
