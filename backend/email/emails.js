@@ -1,5 +1,6 @@
-// All outgoing emails, sent via Gmail SMTP (nodemailer).
-import { transporter, sender } from "./email.config.js";
+// All outgoing emails, sent via the Brevo transactional email HTTP API (port 443),
+// which works on hosts (like Render) that block outbound SMTP.
+import { BREVO_API_URL, BREVO_API_KEY, sender } from "./email.config.js";
 import {
     VERIFICATION_EMAIL_TEMPLATE,
     WELCOME_EMAIL_TEMPLATE,
@@ -7,10 +8,36 @@ import {
     PASSWORD_RESET_SUCCESS_TEMPLATE,
 } from "./emailTemplates.js";
 
+// Low-level helper: POST one email to Brevo and throw on a non-OK response.
+const sendEmail = async ({ to, subject, html }) => {
+    if (!BREVO_API_KEY || !sender.email) {
+        throw new Error("Email not configured: set BREVO_API_KEY and SENDER_EMAIL.");
+    }
+
+    const response = await fetch(BREVO_API_URL, {
+        method: "POST",
+        headers: {
+            "api-key": BREVO_API_KEY,
+            "Content-Type": "application/json",
+            accept: "application/json",
+        },
+        body: JSON.stringify({
+            sender,
+            to: [{ email: to }],
+            subject,
+            htmlContent: html,
+        }),
+    });
+
+    if (!response.ok) {
+        const errorBody = await response.text();
+        throw new Error(`Brevo API ${response.status}: ${errorBody}`);
+    }
+};
+
 export const sendVerificationEmail = async (email, verificationToken) => {
     try {
-        await transporter.sendMail({
-            from: sender,
+        await sendEmail({
             to: email,
             subject: "Verify your email",
             html: VERIFICATION_EMAIL_TEMPLATE.replace("{verificationCode}", verificationToken),
@@ -24,8 +51,7 @@ export const sendVerificationEmail = async (email, verificationToken) => {
 
 export const sendWelcomeEmail = async (email, name) => {
     try {
-        await transporter.sendMail({
-            from: sender,
+        await sendEmail({
             to: email,
             subject: "Welcome to Secure Auth",
             html: WELCOME_EMAIL_TEMPLATE.replaceAll("{name}", name),
@@ -39,8 +65,7 @@ export const sendWelcomeEmail = async (email, name) => {
 
 export const sendForgotPasswordEmail = async (email, resetURL) => {
     try {
-        await transporter.sendMail({
-            from: sender,
+        await sendEmail({
             to: email,
             subject: "Reset your password",
             html: PASSWORD_RESET_REQUEST_TEMPLATE.replace("{resetURL}", resetURL),
@@ -54,8 +79,7 @@ export const sendForgotPasswordEmail = async (email, resetURL) => {
 
 export const sendResetSuccessEmail = async (email) => {
     try {
-        await transporter.sendMail({
-            from: sender,
+        await sendEmail({
             to: email,
             subject: "Password Reset Successful",
             html: PASSWORD_RESET_SUCCESS_TEMPLATE,
